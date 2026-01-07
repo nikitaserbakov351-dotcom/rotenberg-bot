@@ -1,18 +1,24 @@
 import os
 from dotenv import load_dotenv
 
-# Пытаемся загрузить из .env (для локального запуска)
-try:
-    load_dotenv()
-except:
-    pass
+# Пытаемся загрузить .env, если он есть
+load_dotenv()
 
 class Config:
     """Настройки бота"""
-    # Берем переменные из окружения (Railway) или из .env
-    API_ID = int(os.environ.get('API_ID') or os.getenv('API_ID', 0))
-    API_HASH = os.environ.get('API_HASH') or os.getenv('API_HASH', '')
-    SESSION_NAME = os.environ.get('SESSION_NAME') or os.getenv('SESSION_NAME', 'rotenberg_session')
+    
+    # Получаем переменные из окружения
+    API_ID = os.environ.get('API_ID')
+    API_HASH = os.environ.get('API_HASH')
+    SESSION_NAME = os.environ.get('SESSION_NAME')
+    
+    # Если переменные не найдены, попробуем из .env
+    if not API_ID:
+        API_ID = os.getenv('API_ID')
+    if not API_HASH:
+        API_HASH = os.getenv('API_HASH')
+    if not SESSION_NAME:
+        SESSION_NAME = os.getenv('SESSION_NAME')
     
     # Настройки ответов
     TYPING_DELAY_MIN = 0.5
@@ -21,16 +27,22 @@ class Config:
     @classmethod
     def validate(cls):
         """Проверка настроек"""
-        print(f"🔍 Проверяю переменные:")
-        print(f"   API_ID: {'✅' if cls.API_ID else '❌'} ({cls.API_ID})")
-        print(f"   API_HASH: {'✅' if cls.API_HASH else '❌'} ({cls.API_HASH[:10]}...)")
-        print(f"   SESSION_NAME: {'✅' if cls.SESSION_NAME else '❌'} ({cls.SESSION_NAME[:20]}...)")
+        # Проверяем API_ID
+        if not cls.API_ID:
+            raise ValueError("❌ API_ID не найден. Добавьте в Railway Variables: API_ID=ваши_цифры")
         
-        if not cls.API_ID or cls.API_ID == 0:
-            raise ValueError("❌ API_ID не найден")
+        # Пытаемся преобразовать в число
+        try:
+            cls.API_ID = int(cls.API_ID)
+        except (ValueError, TypeError):
+            raise ValueError(f"❌ API_ID должен быть числом. У вас: {cls.API_ID}")
+        
+        # Проверяем API_HASH
         if not cls.API_HASH:
-            raise ValueError("❌ API_HASH не найден")
-        if not cls.SESSION_NAME or cls.SESSION_NAME == 'rotenberg_session':
-            raise ValueError("❌ SESSION_NAME не найден или использует значение по умолчанию")
+            raise ValueError("❌ API_HASH не найден. Добавьте в Railway Variables: API_HASH=ваш_хэш")
+        
+        # Проверяем SESSION_NAME
+        if not cls.SESSION_NAME:
+            raise ValueError("❌ SESSION_NAME не найден. Добавьте в Railway Variables: SESSION_NAME=ваша_сессия")
         
         print("✅ Конфигурация загружена успешно")
