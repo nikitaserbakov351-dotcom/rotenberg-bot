@@ -3,7 +3,7 @@ import os
 class Config:
     """Настройки бота"""
     
-    # ПРЯМОЕ ПОЛУЧЕНИЕ ПЕРЕМЕННЫХ
+    # Получаем переменные из окружения
     API_ID = os.getenv('API_ID', '').strip()
     API_HASH = os.getenv('API_HASH', '').strip()
     SESSION_NAME = os.getenv('SESSION_NAME', '').strip()
@@ -15,36 +15,41 @@ class Config:
     @classmethod
     def validate(cls):
         """Проверка настроек"""
-        print("=" * 50)
-        print("🔍 ПРОВЕРКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ:")
-        print(f"API_ID (длина): {len(cls.API_ID)} символов")
-        print(f"API_HASH (начало): {cls.API_HASH[:15]}")
-        print(f"SESSION_NAME (начало): {cls.SESSION_NAME[:30]}")
-        print("=" * 50)
+        print("=" * 60)
+        print("🔍 ПРОВЕРКА ПЕРЕМЕННЫХ:")
+        print(f"API_ID: {cls.API_ID}")
+        print(f"API_HASH (первые 20): {cls.API_HASH[:20]}")
+        print(f"SESSION_NAME длина: {len(cls.SESSION_NAME)} символов")
         
-        # Проверяем API_ID
+        # Проверяем длину SESSION_NAME
+        if len(cls.SESSION_NAME) < 200:
+            print(f"⚠️  ВНИМАНИЕ: SESSION_NAME слишком короткий! Нужно ~300 символов")
+        
+        if ' ' in cls.SESSION_NAME:
+            print("⚠️  ВНИМАНИЕ: В SESSION_NAME есть ПРОБЕЛЫ! Удалите их!")
+        
+        print("=" * 60)
+        
+        # Проверяем наличие
         if not cls.API_ID:
-            print("❌ ОШИБКА: API_ID ПУСТОЙ!")
-            print("✅ РЕШЕНИЕ: В Railway Variables добавьте API_ID=ваши_цифры")
-            raise ValueError("API_ID пустой")
+            raise ValueError("❌ API_ID не найден")
         
-        # Пробуем преобразовать в число
+        if not cls.API_HASH:
+            raise ValueError("❌ API_HASH не найден")
+        
+        if not cls.SESSION_NAME:
+            raise ValueError("❌ SESSION_NAME не найден")
+        
+        # Проверяем API_ID на число
         try:
             api_id_int = int(cls.API_ID)
             print(f"✅ API_ID корректный: {api_id_int}")
         except:
-            print(f"❌ API_ID не число: '{cls.API_ID}'")
-            raise ValueError("API_ID должен быть числом")
+            raise ValueError(f"❌ API_ID должен быть числом: '{cls.API_ID}'")
         
-        # Проверяем API_HASH
-        if not cls.API_HASH:
-            print("❌ ОШИБКА: API_HASH ПУСТОЙ!")
-            raise ValueError("API_HASH пустой")
+        # Проверяем API_HASH (должен быть 32 символа)
+        if len(cls.API_HASH) != 32:
+            print(f"⚠️  API_HASH должен быть 32 символа, у вас: {len(cls.API_HASH)}")
         
-        # Проверяем SESSION_NAME
-        if not cls.SESSION_NAME:
-            print("❌ ОШИБКА: SESSION_NAME ПУСТОЙ!")
-            raise ValueError("SESSION_NAME пустой")
-        
-        print("✅ ВСЕ ПЕРЕМЕННЫЕ НАЙДЕНЫ!")
-        print("=" * 50)
+        print("✅ ВСЕ ПЕРЕМЕННЫЕ НАЙДЕНЫ")
+        return True
