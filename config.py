@@ -3,10 +3,10 @@ import os
 class Config:
     """Настройки бота"""
     
-    # Получаем переменные ИЗ RAILWAY
-    API_ID = os.environ.get('API_ID', '')
-    API_HASH = os.environ.get('API_HASH', '')
-    SESSION_NAME = os.environ.get('SESSION_NAME', '')
+    # ПРЯМОЕ ПОЛУЧЕНИЕ ПЕРЕМЕННЫХ
+    API_ID = os.getenv('API_ID', '').strip()
+    API_HASH = os.getenv('API_HASH', '').strip()
+    SESSION_NAME = os.getenv('SESSION_NAME', '').strip()
     
     # Настройки ответов
     TYPING_DELAY_MIN = 0.5
@@ -15,20 +15,36 @@ class Config:
     @classmethod
     def validate(cls):
         """Проверка настроек"""
-        print(f"🔍 DEBUG: API_ID = '{cls.API_ID}'")
-        print(f"🔍 DEBUG: API_HASH = '{cls.API_HASH[:10]}...'")
-        print(f"🔍 DEBUG: SESSION_NAME = '{cls.SESSION_NAME[:20]}...'")
+        print("=" * 50)
+        print("🔍 ПРОВЕРКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ:")
+        print(f"API_ID (длина): {len(cls.API_ID)} символов")
+        print(f"API_HASH (начало): {cls.API_HASH[:15]}")
+        print(f"SESSION_NAME (начало): {cls.SESSION_NAME[:30]}")
+        print("=" * 50)
         
         # Проверяем API_ID
-        if not cls.API_ID or cls.API_ID.strip() == '':
-            raise ValueError("❌ API_ID не найден в Railway Variables. Добавьте переменную API_ID с вашими цифрами")
+        if not cls.API_ID:
+            print("❌ ОШИБКА: API_ID ПУСТОЙ!")
+            print("✅ РЕШЕНИЕ: В Railway Variables добавьте API_ID=ваши_цифры")
+            raise ValueError("API_ID пустой")
+        
+        # Пробуем преобразовать в число
+        try:
+            api_id_int = int(cls.API_ID)
+            print(f"✅ API_ID корректный: {api_id_int}")
+        except:
+            print(f"❌ API_ID не число: '{cls.API_ID}'")
+            raise ValueError("API_ID должен быть числом")
         
         # Проверяем API_HASH
-        if not cls.API_HASH or cls.API_HASH.strip() == '':
-            raise ValueError("❌ API_HASH не найден в Railway Variables. Добавьте переменную API_HASH")
+        if not cls.API_HASH:
+            print("❌ ОШИБКА: API_HASH ПУСТОЙ!")
+            raise ValueError("API_HASH пустой")
         
         # Проверяем SESSION_NAME
-        if not cls.SESSION_NAME or cls.SESSION_NAME.strip() == '':
-            raise ValueError("❌ SESSION_NAME не найден в Railway Variables. Добавьте переменную SESSION_NAME")
+        if not cls.SESSION_NAME:
+            print("❌ ОШИБКА: SESSION_NAME ПУСТОЙ!")
+            raise ValueError("SESSION_NAME пустой")
         
-        print("✅ Конфигурация загружена успешно")
+        print("✅ ВСЕ ПЕРЕМЕННЫЕ НАЙДЕНЫ!")
+        print("=" * 50)
