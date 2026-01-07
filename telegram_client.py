@@ -2,6 +2,7 @@ import asyncio
 import logging
 import random
 import sys
+import os  # ДОБАВЬТЕ ЭТУ СТРОКУ!
 from typing import Optional
 from datetime import datetime
 
@@ -9,6 +10,7 @@ from telethon import TelegramClient, events
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji, PeerUser
 from telethon.errors import FloodWaitError
+from telethon.sessions import StringSession  # ДОБАВЬТЕ ЭТУ СТРОКУ!
 
 from brain import RotenbergBrain
 
@@ -30,8 +32,11 @@ class TelegramClientHandler:
         try:
             print("🔧 Инициализация Telegram клиента...")
 
+            # СОЗДАЁМ СТРОКОВУЮ СЕССИЮ
+            string_session = StringSession(self.config.SESSION_NAME)
+
             self.client = TelegramClient(
-                session=self.config.SESSION_NAME,
+                session=string_session,  # ИСПОЛЬЗУЕМ СТРОКОВУЮ СЕССИЮ!
                 api_id=self.config.API_ID,
                 api_hash=self.config.API_HASH,
                 device_model="RotenbergBot",
@@ -50,13 +55,14 @@ class TelegramClientHandler:
             print("📡 Подключаюсь к Telegram...")
             await self.client.connect()
 
-            # Проверка авторизации
+            # Проверка авторизации (ВАЖНОЕ ИЗМЕНЕНИЕ!)
             if not await self.client.is_user_authorized():
-                print("\n🔐 ТРЕБУЕТСЯ АВТОРИЗАЦИЯ")
-                print("=" * 40)
-                await self._perform_login()
-            else:
-                print("✅ Уже авторизован")
+                print("❌ ОШИБКА: Сессия недействительна или устарела!")
+                print("ℹ️  Получите новую сессию:")
+                print("   1. Запустите get_string.py на своем компьютере")
+                print("   2. Скопируйте новую строку сессии")
+                print("   3. Обновите переменную SESSION_NAME в Railway")
+                raise ValueError("Недействительная сессия")
 
             # Получаем информацию о себе
             self.me = await self.client.get_me()
@@ -82,119 +88,53 @@ class TelegramClientHandler:
 
     def setup_handlers(self):
         """Настройка обработчиков событий"""
-
         @self.client.on(events.NewMessage(incoming=True))
         async def message_handler(event):
             await self._handle_message(event)
 
-        @self.client.on(events.MessageEdited(incoming=True))
-        async def edit_handler(event):
-            if random.random() < 0.2:  # 20% шанс ответить на правку
-                await event.reply("Поправляешь? Ясно...")
-
-    async def _perform_login(self):
-        """Процедура авторизации"""
-        try:
-            phone = input("Введите номер телефона (например, +79161234567): ").strip()
-
-            await self.client.send_code_request(phone)
-            print("✅ Код отправлен в Telegram")
-
-            code = input("Введите код из Telegram: ").strip()
-
-            await self.client.sign_in(phone, code)
-            print("✅ Авторизация успешна!")
-
-        except Exception as e:
-            if "two" in str(e).lower():
-                password = input("Включена 2FA. Введите пароль: ")
-                await self.client.sign_in(password=password)
-                print("✅ Авторизация с 2FA успешна!")
-            else:
-                print(f"❌ Ошибка: {e}")
-                raise
+    # УДАЛИТЕ МЕТОД _perform_login ВОВСЕ! Он больше не нужен.
 
     async def _handle_message(self, event):
         """Обработка входящих сообщений"""
         try:
-            print(f"\n🔍 DEBUG: Начало обработки сообщения")
-
             # Пропускаем служебные сообщения
-            if not event.message:
-                print("❌ DEBUG: event.message отсутствует")
-                return
-
-            if event.message.out:
-                print("❌ DEBUG: Это наше исходящее сообщение")
+            if not event.message or event.message.out:
                 return
 
             # Получаем информацию об отправителе
-            print(f"🔍 DEBUG: Получаю информацию об отправителе...")
             sender = await event.get_sender()
             if not sender:
-                print("❌ DEBUG: Не удалось получить информацию об отправителе")
                 return
 
             # Логируем
-            msg_preview = event.message.text[:80] + "..." if len(event.message.text) > 80 else event.message.text
-            print(f"📩 DEBUG: От {sender.first_name} ({sender.id}): {msg_preview}")
+            msg_preview = event.message.text[:50] + "..." if len(event.message.text) > 50 else event.message.text
+            print(f"📩 Сообщение от {sender.first_name}: {msg_preview}")
 
             # Имитируем печатание
-            typing_delay = random.uniform(
-                self.config.TYPING_DELAY_MIN,
-                self.config.TYPING_DELAY_MAX
-            )
-            print(f"⏳ DEBUG: Имитирую печатание ({typing_delay:.1f} сек)...")
+            typing_delay = random.uniform(0.5, 2.0)
             await asyncio.sleep(typing_delay)
 
             # Генерируем ответ
-            print(f"🧠 DEBUG: Генерирую ответ...")
-            try:
-                response = self.brain.get_response(
-                    user_message=event.message.text,
-                    user_name=sender.first_name
-                )
-                print(f"✅ DEBUG: Ответ сгенерирован: {response[:100]}...")
-            except Exception as brain_error:
-                print(f"❌ DEBUG: Ошибка brain.get_response: {brain_error}")
-                response = "Сейчас мыслями на тренировке. Повтори вопрос."
+            response = self.brain.get_response(
+                user_message=event.message.text,
+                user_name=sender.first_name
+            )
 
             # Отправляем ответ
-            print(f"📤 DEBUG: Отправляю ответ...")
-            try:
-                await event.reply(response)
-                print(f"✅ DEBUG: Ответ отправлен успешно")
+            await event.reply(response)
 
-                # Ставим реакцию (70% шанс)
-                if random.random() < 0.7:
-                    await self._send_reaction(event.message)
-                    print(f"👍 DEBUG: Реакция поставлена")
+            # Ставим реакцию (50% шанс)
+            if random.random() < 0.5:
+                await self._send_reaction(event.message)
 
-                # Отмечаем как прочитанное
-                await event.message.mark_read()
-                print(f"👁️ DEBUG: Сообщение отмечено как прочитанное")
+            # Отмечаем как прочитанное
+            await event.message.mark_read()
 
-            except FloodWaitError as e:
-                print(f"⏳ DEBUG: FloodWait: жду {e.seconds} секунд")
-                await asyncio.sleep(e.seconds)
-                await event.reply(response)
-            except Exception as send_error:
-                print(f"❌ DEBUG: Ошибка отправки: {send_error}")
-                raise
-
+        except FloodWaitError as e:
+            print(f"⏳ Слишком много запросов. Жду {e.seconds} секунд")
+            await asyncio.sleep(e.seconds)
         except Exception as e:
-            print(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
-            print(f"🔥 Тип ошибки: {type(e).__name__}")
-            import traceback
-            print(f"🔥 Трассировка:\n{traceback.format_exc()}")
-
-            logger.error(f"Ошибка обработки: {e}", exc_info=True)
-
-            # Пробуем отправить более конкретное сообщение об ошибке
-            try:
-                await event.reply(f"Ошибка типа {type(e).__name__}. Проверь логи.")
-            except:
-                pass  # Если и это не получается, просто игнорируем
+            logger.error(f"Ошибка обработки: {e}")
 
     async def _send_reaction(self, message):
         """Отправляет реакцию на сообщение"""
@@ -202,12 +142,7 @@ class TelegramClientHandler:
             reactions = [
                 ReactionEmoji(emoticon='👍'),
                 ReactionEmoji(emoticon='❤️'),
-                ReactionEmoji(emoticon='😂'),
-                ReactionEmoji(emoticon='😮'),
-                ReactionEmoji(emoticon='😢'),
                 ReactionEmoji(emoticon='👏'),
-                ReactionEmoji(emoticon='🔥'),
-                ReactionEmoji(emoticon='🎯'),
             ]
 
             await self.client(SendReactionRequest(
@@ -215,19 +150,17 @@ class TelegramClientHandler:
                 msg_id=message.id,
                 reaction=[random.choice(reactions)]
             ))
-        except Exception as e:
-            logger.debug(f"Не удалось поставить реакцию: {e}")
+        except:
+            pass  # Игнорируем ошибки реакций
 
     async def _keep_alive(self):
         """Поддержание соединения"""
         while self.is_running:
             try:
-                await asyncio.sleep(random.randint(200, 400))
-                # Простое действие для поддержания связи
+                await asyncio.sleep(300)  # Каждые 5 минут
                 if self.client and self.client.is_connected():
                     await self.client.get_me()
-            except Exception as e:
-                logger.debug(f"Keep alive: {e}")
+            except:
                 await asyncio.sleep(30)
 
     async def _run_forever(self):
