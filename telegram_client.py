@@ -36,7 +36,7 @@ class TelegramClientHandler:
             string_session = StringSession(self.config.SESSION_NAME)
 
             self.client = TelegramClient(
-                session=string_session,  # ИСПОЛЬЗУЕМ СТРОКОВУЮ СЕССИЮ!
+                session=self.config.SESSION_NAME,  # Просто имя файла
                 api_id=self.config.API_ID,
                 api_hash=self.config.API_HASH,
                 device_model="RotenbergBot",
@@ -177,3 +177,4 @@ class TelegramClientHandler:
         if self.client:
             await self.client.disconnect()
         logger.info("🛑 Бот остановлен")
+
