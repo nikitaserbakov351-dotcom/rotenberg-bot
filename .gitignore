@@ -1,19 +1,2 @@
-# Файлы с секретами
-.env
 *.session
-session*
-my_data.txt
-credentials.txt
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-
-# Логи
-*.log
-rotenberg_bot_debug.log
+get_session.py
