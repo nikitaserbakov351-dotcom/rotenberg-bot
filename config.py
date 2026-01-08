@@ -21,10 +21,6 @@ class Config:
         print(f"API_HASH (первые 20): {cls.API_HASH[:20]}")
         print(f"SESSION_NAME длина: {len(cls.SESSION_NAME)} символов")
         
-        # Проверяем длину SESSION_NAME
-        if len(cls.SESSION_NAME) < 200:
-            print(f"⚠️  ВНИМАНИЕ: SESSION_NAME слишком короткий! Нужно ~300 символов")
-        
         if ' ' in cls.SESSION_NAME:
             print("⚠️  ВНИМАНИЕ: В SESSION_NAME есть ПРОБЕЛЫ! Удалите их!")
         
@@ -53,3 +49,4 @@ class Config:
         
         print("✅ ВСЕ ПЕРЕМЕННЫЕ НАЙДЕНЫ")
         return True
+
